@@ -129,6 +129,8 @@
   #scroll-bg.active { opacity: 1; }
   #scroll-bg img {
     position: absolute;
+    top: 50%;
+    left: 50%;
     transform-origin: center center;
     opacity: 0.07;
   }
@@ -262,17 +264,22 @@
 
   /* ─────────────────────────────────────────
      MOBILE ART STRIPS (hidden on desktop)
+     Use object-fit/object-position for
+     reliable cross-browser cropping.
   ───────────────────────────────────────── */
   .mobile-art-strip {
     display: none;
     width: 100%;
     overflow: hidden;
     position: relative;
+    /* Height set explicitly in mobile breakpoint */
   }
 
   .mobile-art-strip img {
-    position: absolute;
     display: block;
+    /* Sized and positioned by JS */
+    width: 100%;
+    height: 100%;
   }
 
   /* ─────────────────────────────────────────
@@ -391,12 +398,21 @@
     /* Hide desktop sticky sidebar */
     #art-sticky { display: none !important; }
 
-    /* Show mobile art strips */
+    /* Show mobile art strips with explicit height */
     .mobile-art-strip {
       display: block;
       height: 42vw;
       border-top: 1px solid var(--light-rule);
       border-bottom: 1px solid var(--light-rule);
+    }
+
+    /* img fills the strip container; JS sets object-position to pan */
+    .mobile-art-strip img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 0% center;
+      display: block;
     }
 
     /* Panels: full width, block layout */
@@ -640,26 +656,21 @@
   }
 
   /* ── Mobile: horizontal art strips ──
-     4 strips pan progressively from left (simple) to right (complex)
-     across the landscape SVG (1151×482).
+     Uses object-fit:cover + object-position to crop the SVG
+     to a different horizontal slice per strip, panning from
+     left (sparse/simple) to right (dense/complex).
   ── */
   function layoutMobileStrips() {
     if (!isMobile()) return;
     const strips = document.querySelectorAll('.mobile-art-strip');
     strips.forEach((strip, i) => {
-      const img    = strip.querySelector('img');
-      const stripH = strip.offsetHeight;
-      const stripW = strip.offsetWidth;
-      // Scale so SVG fills strip height
-      const scale     = stripH / SVG_H;
-      const renderedW = SVG_W * scale;
-      img.style.height = stripH + 'px';
-      img.style.width  = renderedW + 'px';
-      img.style.top    = '0px';
-      // Pan: 0 = left edge (sparse), 1 = right edge (complex)
-      const t      = strips.length > 1 ? i / (strips.length - 1) : 0;
-      const maxPan = Math.max(0, renderedW - stripW);
-      img.style.left = (-t * maxPan) + 'px';
+      const img = strip.querySelector('img');
+      const t   = strips.length > 1 ? i / (strips.length - 1) : 0;
+      // object-position x%: 0% = left edge, 100% = right edge
+      img.style.objectFit      = 'cover';
+      img.style.objectPosition = (t * 100) + '% center';
+      img.style.width  = '100%';
+      img.style.height = '100%';
     });
   }
 
@@ -685,6 +696,7 @@
     const t   = Math.max(0, Math.min(1, (window.scrollY - introExitY) / Math.max(1, gapY - introExitY)));
     const deg = t * 90;
 
+    // Size image to cover the viewport diagonal at any rotation angle
     const vw   = window.innerWidth;
     const vh   = window.innerHeight;
     const diag = Math.ceil(Math.sqrt(vw * vw + vh * vh));
@@ -693,14 +705,19 @@
 
     scrollBgImg.style.width  = imgW + 'px';
     scrollBgImg.style.height = imgH + 'px';
-    scrollBgImg.style.left   = (vw / 2 - imgW / 2) + 'px';
-    scrollBgImg.style.top    = (vh / 2 - imgH / 2) + 'px';
 
-    let opacity = 0.07;
-    if (t > 0.85)      opacity = 0.07 * (1 - (t - 0.85) / 0.15);
-    else if (t < 0.08) opacity = 0.07 * (t / 0.08);
-    scrollBgImg.style.opacity   = opacity;
-    scrollBgImg.style.transform = `rotate(${deg}deg)`;
+    // Max opacity: slightly higher on mobile so the effect is perceptible
+    const maxOpacity = isMobile() ? 0.12 : 0.07;
+
+    let opacity = maxOpacity;
+    if (t > 0.85)      opacity = maxOpacity * (1 - (t - 0.85) / 0.15);
+    else if (t < 0.08) opacity = maxOpacity * (t / 0.08);
+    scrollBgImg.style.opacity = opacity;
+
+    // Pivot from viewport center using translate(-50%,-50%) + rotate.
+    // The img has top:50%; left:50% in CSS, so this always centres correctly
+    // regardless of iOS Safari fixed-position quirks.
+    scrollBgImg.style.transform = `translate(-50%, -50%) rotate(${deg}deg)`;
   }
 
   /* ── Panel fade-in (desktop/tablet only) ── */

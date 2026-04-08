@@ -626,6 +626,54 @@
     svgImg.style.top = (-progress * overflow) + 'px';
   }
 
+  /* ── Scroll-rotating background ──
+     Activates once the intro scrolls off screen.
+     Rotates 0°→90° CW by the time "The work is in that gap." is reached.
+     Image sized to 1.5× the viewport diagonal so it fills at all angles.
+  ── */
+  const scrollBg    = document.getElementById('scroll-bg');
+  const scrollBgImg = document.getElementById('scroll-bg-img');
+
+  function updateScrollBg() {
+    const introEl   = document.getElementById('intro');
+    const closingEl = document.getElementById('closing');
+    const gapLine   = closingEl ? closingEl.querySelector('p[style*="italic"]') : null;
+
+    const introBottom = introEl.getBoundingClientRect().bottom;
+    const active = introBottom < 20;
+    scrollBg.classList.toggle('active', active);
+    if (!active) return;
+
+    const introExitY = introEl.offsetTop + introEl.offsetHeight;
+    const gapY = gapLine
+      ? gapLine.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.5
+      : document.body.scrollHeight;
+
+    const t   = Math.max(0, Math.min(1, (window.scrollY - introExitY) / Math.max(1, gapY - introExitY)));
+    const deg = t * 90;
+
+    // 1.5× diagonal ensures coverage at all rotation angles
+    const vw   = window.innerWidth;
+    const vh   = window.innerHeight;
+    const diag = Math.ceil(Math.sqrt(vw * vw + vh * vh) * 1.5);
+    const imgW = diag;
+    const imgH = diag / (SVG_W / SVG_H);
+
+    scrollBgImg.style.width  = imgW + 'px';
+    scrollBgImg.style.height = imgH + 'px';
+
+    // Max opacity slightly higher on mobile so the effect reads through
+    const maxOpacity = isMobile() ? 0.12 : 0.07;
+    let opacity = maxOpacity;
+    if (t > 0.85)      opacity = maxOpacity * (1 - (t - 0.85) / 0.15);
+    else if (t < 0.08) opacity = maxOpacity * (t / 0.08);
+    scrollBgImg.style.opacity = opacity;
+
+    // Pivot from viewport center — top:50%;left:50% in CSS + translate(-50%,-50%)
+    // ensures correct centering on iOS Safari fixed-position contexts
+    scrollBgImg.style.transform = `translate(-50%, -50%) rotate(${deg}deg)`;
+  }
+
   /* ── Panel fade-in (desktop/tablet only) ── */
   const panels = document.querySelectorAll('.panel-inner');
   function updatePanelFade() {

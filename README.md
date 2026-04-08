@@ -62,11 +62,11 @@
 
   .eyebrow {
     font-family: 'Jost', sans-serif;
-    font-weight: 200;
-    font-size: clamp(10px, 1.1vw, 13px);
+    font-weight: 300;
+    font-size: clamp(11px, 1.4vw, 15px);
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--mid);
+    color: var(--ink);
     margin-bottom: 2rem;
   }
 
@@ -263,23 +263,12 @@
   }
 
   /* ─────────────────────────────────────────
-     MOBILE ART STRIPS (hidden on desktop)
+     MOBILE ART STRIPS — hidden everywhere
+     (artwork shown only in the full-artwork
+     section at the end of the page)
   ───────────────────────────────────────── */
   .mobile-art-strip {
-    display: none;
-    width: 100%;
-    overflow: hidden;
-    position: relative;
-  }
-
-  /* Default: invisible until JS positions it */
-  .mobile-art-strip img {
-    display: block;
-    visibility: hidden;
-  }
-
-  .mobile-art-strip.ready img {
-    visibility: visible;
+    display: none !important;
   }
 
   /* ─────────────────────────────────────────
@@ -398,24 +387,6 @@
     /* Hide desktop sticky sidebar */
     #art-sticky { display: none !important; }
 
-    /* Show mobile art strips — overflow:hidden clips the img */
-    .mobile-art-strip {
-      display: block;
-      height: 42vw;
-      border-top: 1px solid var(--light-rule);
-      border-bottom: 1px solid var(--light-rule);
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* img absolutely positioned; JS sets width, height, left to pan */
-    .mobile-art-strip img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      display: block;
-    }
-
     /* Panels: full width, block layout */
     .panel {
       min-height: auto;
@@ -468,7 +439,6 @@
   ═════════════════════════════════════════ */
   @media (max-width: 390px) {
     h1 { font-size: clamp(32px, 10vw, 46px); }
-    .mobile-art-strip { height: 48vw; }
   }
 </style>
 </head>
@@ -656,82 +626,6 @@
     svgImg.style.top = (-progress * overflow) + 'px';
   }
 
-  /* ── Mobile: horizontal art strips ──
-     Scales the SVG so its height fills the strip, then pans
-     horizontally from left (simple) to right (complex) using
-     pixel-precise absolute positioning. Works on iOS Safari.
-  ── */
-  function layoutMobileStrips() {
-    if (!isMobile()) return;
-    const strips = document.querySelectorAll('.mobile-art-strip');
-    strips.forEach((strip, i) => {
-      const img    = strip.querySelector('img');
-      const stripH = strip.offsetHeight;  // always has a value — set in CSS
-      const stripW = strip.offsetWidth;
-      if (!stripH || !stripW) return;
-
-      // Scale image so its height exactly fills the strip
-      const scale     = stripH / SVG_H;
-      const renderedW = Math.round(SVG_W * scale);
-
-      img.style.height = stripH + 'px';
-      img.style.width  = renderedW + 'px';
-      img.style.top    = '0px';
-
-      // t=0 → show left edge (sparse), t=1 → show right edge (complex)
-      const t      = strips.length > 1 ? i / (strips.length - 1) : 0;
-      const maxPan = Math.max(0, renderedW - stripW);
-      img.style.left = (-Math.round(t * maxPan)) + 'px';
-      strip.classList.add('ready');
-    });
-  }
-
-  /* ── Scroll-rotating background ── */
-  const scrollBg    = document.getElementById('scroll-bg');
-  const scrollBgImg = document.getElementById('scroll-bg-img');
-
-  function updateScrollBg() {
-    const introEl   = document.getElementById('intro');
-    const closingEl = document.getElementById('closing');
-    const gapLine   = closingEl ? closingEl.querySelector('p[style*="italic"]') : null;
-
-    const introBottom = introEl.getBoundingClientRect().bottom;
-    const active = introBottom < 20;
-    scrollBg.classList.toggle('active', active);
-    if (!active) return;
-
-    const introExitY = introEl.offsetTop + introEl.offsetHeight;
-    const gapY = gapLine
-      ? gapLine.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.5
-      : document.body.scrollHeight;
-
-    const t   = Math.max(0, Math.min(1, (window.scrollY - introExitY) / Math.max(1, gapY - introExitY)));
-    const deg = t * 90;
-
-    // Size image larger — 1.5× the diagonal so it fills generously at all rotation angles
-    const vw   = window.innerWidth;
-    const vh   = window.innerHeight;
-    const diag = Math.ceil(Math.sqrt(vw * vw + vh * vh) * 1.5);
-    const imgW = diag;
-    const imgH = diag / (SVG_W / SVG_H);
-
-    scrollBgImg.style.width  = imgW + 'px';
-    scrollBgImg.style.height = imgH + 'px';
-
-    // Max opacity: slightly higher on mobile so the effect is perceptible
-    const maxOpacity = isMobile() ? 0.12 : 0.07;
-
-    let opacity = maxOpacity;
-    if (t > 0.85)      opacity = maxOpacity * (1 - (t - 0.85) / 0.15);
-    else if (t < 0.08) opacity = maxOpacity * (t / 0.08);
-    scrollBgImg.style.opacity = opacity;
-
-    // Pivot from viewport center using translate(-50%,-50%) + rotate.
-    // The img has top:50%; left:50% in CSS, so this always centres correctly
-    // regardless of iOS Safari fixed-position quirks.
-    scrollBgImg.style.transform = `translate(-50%, -50%) rotate(${deg}deg)`;
-  }
-
   /* ── Panel fade-in (desktop/tablet only) ── */
   const panels = document.querySelectorAll('.panel-inner');
   function updatePanelFade() {
@@ -766,7 +660,6 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       layoutArt();
-      layoutMobileStrips();
       onScroll();
     }, 80);
   }
@@ -776,11 +669,8 @@
   window.addEventListener('orientationchange', onResize);
 
   layoutArt();
-  layoutMobileStrips();
   onScroll();
   // Run again after fonts/images settle, and once more for iOS Safari
-  setTimeout(() => { layoutMobileStrips(); onScroll(); }, 150);
-  setTimeout(() => { layoutMobileStrips(); onScroll(); }, 600);
 })();
 </script>
 </body>

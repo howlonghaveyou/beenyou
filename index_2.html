@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Long Have You Been You?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1a18;
+    --warm-white: #f7f5f0;
+    --mid: #8a8780;
+    --light-rule: rgba(26,26,24,0.12);
+    --accent: #3a3935;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--warm-white);
+    color: var(--ink);
+    font-family: 'EB Garamond', Georgia, serif;
+    overflow-x: hidden;
+  }
+
+  /* ── INTRO ── */
+  #intro {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 6vw 8vh;
+    position: relative;
+  }
+
+  #intro-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    opacity: 0.07;
+    pointer-events: none;
+  }
+
+  #intro-bg svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .title-block {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+  }
+
+  .eyebrow {
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: clamp(10px, 1.1vw, 13px);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 2rem;
+  }
+
+  h1 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(44px, 7.5vw, 98px);
+    line-height: 1.0;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin-bottom: 2.5rem;
+  }
+
+  .subtitle {
+    font-size: clamp(16px, 1.4vw, 20px);
+    line-height: 1.75;
+    color: var(--mid);
+    max-width: 520px;
+    font-style: italic;
+  }
+
+  .scroll-cue {
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-top: 4rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    animation: fadein 1.2s 1.8s forwards;
+  }
+
+  .scroll-cue::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 1px;
+    background: var(--mid);
+  }
+
+  @keyframes fadein {
+    to { opacity: 1; }
+  }
+
+  /* ── ARTWORK SCROLL SECTION ── */
+  #artwork-section {
+    position: relative;
+  }
+
+  /* Sticky art container */
+  #art-sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* The SVG sits rotated, clipped to show only a portion */
+  #art-wrap {
+    position: relative;
+    width: 42vw;
+    height: 100vh;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* The SVG is 1151×482 landscape.
+     We rotate 90° CW so it becomes portrait: 482px wide, 1151px tall (in natural coords)
+     We scale to fill 42vw wide. Scale = 42vw / 482 ≈ 0.0872vw per px
+     Then height = 1151 * scale
+     We use a transform to rotate and position. */
+  #art-inner {
+    position: absolute;
+    /* rotated SVG: original width becomes height, original height becomes width */
+    /* We'll size the inner box as 482×1151 after rotation */
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  #art-inner img,
+  #art-inner svg {
+    /* display as a tall portrait strip */
+  }
+
+  /* Clip + scroll reveal handled via JS transform */
+  #svg-rotated {
+    display: block;
+    /* Will be sized and positioned by JS */
+    position: absolute;
+    transform-origin: top left;
+  }
+
+  /* Progress line */
+  #progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    width: 0%;
+    background: var(--ink);
+    z-index: 100;
+    transition: width 0.1s linear;
+  }
+
+  /* ── NARRATIVE SCROLL PANELS ── */
+  #scroll-narrative {
+    position: relative;
+    z-index: 1;
+    /* overlays the sticky art */
+  }
+
+  .panel {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 0 6vw;
+  }
+
+  .panel-inner {
+    max-width: 460px;
+    /* panels float on the left */
+  }
+
+  .panel:nth-child(even) {
+    justify-content: flex-start;
+  }
+  .panel:nth-child(odd) {
+    justify-content: flex-start;
+  }
+
+  .panel-label {
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-label::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--mid);
+  }
+
+  .panel h2 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-size: clamp(26px, 3vw, 40px);
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  .panel h2 em {
+    font-style: italic;
+  }
+
+  .panel p {
+    font-size: clamp(15px, 1.2vw, 18px);
+    line-height: 1.85;
+    color: #4a4845;
+  }
+
+  .panel p + p {
+    margin-top: 1.2em;
+  }
+
+  /* Separator rule */
+  .rule {
+    width: 40px;
+    height: 1px;
+    background: var(--light-rule);
+    margin: 2rem 0;
+  }
+
+  /* ── ARTWORK IN FULL ── */
+  #full-artwork {
+    padding: 14vh 6vw;
+    text-align: center;
+  }
+
+  .full-art-label {
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 3rem;
+  }
+
+  #full-svg-container {
+    display: inline-block;
+    width: 100%;
+    max-width: 960px;
+    border: 1px solid var(--light-rule);
+    padding: 3vw;
+    background: #fafaf8;
+  }
+
+  #full-svg-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .caption {
+    margin-top: 2rem;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--mid);
+    font-family: 'EB Garamond', serif;
+  }
+
+  /* ── CLOSING ── */
+  #closing {
+    padding: 12vh 6vw 16vh;
+    max-width: 680px;
+  }
+
+  #closing h2 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(28px, 3.5vw, 46px);
+    line-height: 1.2;
+    margin-bottom: 2rem;
+  }
+
+  #closing p {
+    font-size: clamp(15px, 1.2vw, 18px);
+    line-height: 1.9;
+    color: #4a4845;
+  }
+
+  #closing p + p { margin-top: 1.4em; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--light-rule);
+    padding: 3rem 6vw;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  footer span {
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  /* ── PANEL FADE IN ── */
+  .panel-inner {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.9s ease, transform 0.9s ease;
+  }
+
+  .panel-inner.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── SCROLL-ROTATING BACKGROUND ── */
+  /* Covers everything from end of intro down to just before closing gap line */
+  #scroll-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  #scroll-bg.active {
+    opacity: 1;
+  }
+
+  #scroll-bg img {
+    position: absolute;
+    /* Will be sized + rotated by JS */
+    transform-origin: center center;
+    opacity: 0.07;
+  }
+
+  /* All content above scroll-bg in stacking */
+  #intro { z-index: 1; }
+  #artwork-section { position: relative; z-index: 1; }
+  #full-artwork { position: relative; z-index: 1; }
+  #closing { position: relative; z-index: 1; }
+  footer { position: relative; z-index: 1; }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    #art-wrap { width: 35vw; }
+
+    .panel {
+      align-items: flex-start;
+      padding-top: 15vh;
+      padding-bottom: 15vh;
+    }
+
+    .panel-inner { max-width: 100%; }
+  }
+
+  @media (max-width: 540px) {
+    #art-sticky { display: none; }
+    #art-wrap { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- SCROLL-ROTATING BACKGROUND (fixed, scroll-driven rotation) -->
+<div id="scroll-bg" aria-hidden="true">
+  <img id="scroll-bg-img" src="hex_pattern_svg.svg" alt="">
+</div>
+
+<!-- INTRO -->
+<section id="intro">
+  <div id="intro-bg">
+    <img src="hex_pattern_svg.svg" alt="" aria-hidden="true" style="width:100%; height:100%; object-fit:cover; object-position:right center;">
+  </div>
+  <div class="title-block">
+    <p class="eyebrow">Etched aluminum &nbsp;·&nbsp; 2026</p>
+    <h1>How Long Have<br>You Been You?</h1>
+    <p class="subtitle">A meditation on identity, continuity, and the strange persistence of the self across time.</p>
+    <p class="scroll-cue">Scroll to explore</p>
+  </div>
+</section>
+
+<!-- MAIN SCROLLYTELLING AREA -->
+<div id="artwork-section">
+
+  <!-- Sticky artwork panel (right side) -->
+  <div id="art-sticky" aria-hidden="true">
+    <div id="art-wrap">
+      <div id="art-inner">
+        <img id="svg-rotated" src="hex_pattern_svg.svg" alt="Hex pattern artwork">
+      </div>
+    </div>
+  </div>
+
+  <!-- Narrative panels (left side, scroll over sticky) -->
+  <div id="scroll-narrative">
+
+    <div class="panel" data-progress="0">
+      <div class="panel-inner">
+        <p class="panel-label">Origin</p>
+        <h2>You began as<br><em>one thing.</em></h2>
+        <div class="rule"></div>
+        <p>Look at a photograph of yourself as a child. The face is familiar, yet foreign. You share a body — a lineage of cells — with that small person. And yet you know something they do not, have been shaped by things they never experienced, carry losses they couldn't yet imagine.</p>
+        <p>Are you the same person?</p>
+      </div>
+    </div>
+
+    <div class="panel" data-progress="0.2">
+      <div class="panel-inner">
+        <p class="panel-label">The past self</p>
+        <h2>Looking backward<br>feels <em>obvious.</em></h2>
+        <div class="rule"></div>
+        <p>When we look behind us, the transformation seems natural. Of course we changed. We can trace the path: the formative years, the decisive moments, the slow accumulations. The journey from then to now feels legible — even inevitable.</p>
+        <p>We grant our past selves the permission to have been different.</p>
+      </div>
+    </div>
+
+    <div class="panel" data-progress="0.42">
+      <div class="panel-inner">
+        <p class="panel-label">The present self</p>
+        <h2>But now<br><em>feels fixed.</em></h2>
+        <div class="rule"></div>
+        <p>Something strange happens when we look forward. The future self — the person you will be in ten, twenty, forty years — feels like a continuation of who you are right now. We make plans for them, make sacrifices for them, as though they are us.</p>
+        <p>We assume we will want what we want now. Believe what we believe now. Be, essentially, who we are now.</p>
+      </div>
+    </div>
+
+    <div class="panel" data-progress="0.64">
+      <div class="panel-inner">
+        <p class="panel-label">The future self</p>
+        <h2>The pattern<br><em>keeps changing.</em></h2>
+        <div class="rule"></div>
+        <p>Research consistently shows that people underestimate how much they will change. Psychologists call this the "end of history illusion" — the persistent feeling that you have finally become the person you were always becoming, and that the story is now stable.</p>
+        <p>But the pattern never stops evolving. Complexity grows in ways you cannot yet see from where you stand.</p>
+      </div>
+    </div>
+
+    <div class="panel" data-progress="0.85">
+      <div class="panel-inner">
+        <p class="panel-label">Continuity</p>
+        <h2>And yet — <br><em>still you.</em></h2>
+        <div class="rule"></div>
+        <p>The philosopher Derek Parfit spent his life on this question. He came to believe that personal identity is not what matters — that the thread connecting your past, present, and future selves is thinner than we imagine, and stranger.</p>
+        <p>And somehow, that thought is not frightening. It is freeing. To hold your past and future selves with a lighter grip. To let the pattern be what it is.</p>
+      </div>
+    </div>
+
+  </div><!-- /scroll-narrative -->
+</div><!-- /artwork-section -->
+
+<!-- FULL ARTWORK REVEAL -->
+<section id="full-artwork">
+  <p class="full-art-label">The work in full</p>
+  <div id="full-svg-container">
+    <img src="hex_pattern_svg.svg" alt="How Long Have You Been You — full artwork, etched aluminum">
+  </div>
+  <p class="caption">Etched aluminum &nbsp;·&nbsp; The pattern moves from sparse regularity at left to dense complexity at right.</p>
+</section>
+
+<!-- CLOSING -->
+<section id="closing">
+  <h2>"How long have you<br>been you?"</h2>
+  <p>This question does not have an answer. It is designed to sit with you, to accompany you through your day, to surface again unexpectedly when you catch your reflection or find an old letter or meet someone you used to be.</p>
+  <p>The aluminum does not change. The pattern etched into it is fixed. But the person looking at it — the person asking the question — never is.</p>
+  <p style="margin-top: 2.5rem; font-style: italic; color: var(--mid);">The work is in that gap.</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span>How Long Have You Been You? &nbsp;·&nbsp; Etched Aluminum</span>
+  <span>© 2026</span>
+</footer>
+
+<script>
+  // ── SCROLL-DRIVEN ART REVEAL ──
+  // The SVG is 1151 × 482 (landscape).
+  // We rotate it 90° CW: so visually it becomes ~482px wide × 1151px tall (portrait).
+  // We display it as a strip on the right side.
+  // As the user scrolls, we translate the image upward to reveal the complex (right) end.
+
+  const svgImg = document.getElementById('svg-rotated');
+  const artWrap = document.getElementById('art-wrap');
+  const progressBar = document.getElementById('progress-bar');
+  const panels = document.querySelectorAll('.panel-inner');
+
+  const SVG_W = 1151;
+  const SVG_H = 482;
+  // After 90° CW rotation: visual width = SVG_H = 482, visual height = SVG_W = 1151
+
+  function layoutArt() {
+    const wrapW = artWrap.offsetWidth;
+    const wrapH = artWrap.offsetHeight;
+
+    // Scale so visual width (482) fills the wrap width
+    const scale = wrapW / SVG_H;
+    // Visual height after scale
+    const visH = SVG_W * scale;
+
+    // The img element: original size 1151×482
+    // We need: rotate(90deg) then scale so that the 482-wide side fills wrapW
+    // set img width = SVG_W * scale (so that after rotation, the height becomes this)
+    // set img height = SVG_H * scale (so after rotation, the width becomes this = wrapW)
+
+    const imgW = SVG_W * scale;
+    const imgH = SVG_H * scale;
+
+    svgImg.style.width = imgW + 'px';
+    svgImg.style.height = imgH + 'px';
+
+    // Rotate 90deg CW: transform-origin top-left, then shift so it sits correctly
+    // rotate(90deg) moves the image such that:
+    //   left edge goes to top, top edge goes to right
+    // After rotate(90): top-left of rotated img is at original top-right corner.
+    // We want the top of the ROTATED image (= top of the scrollable strip) to show first.
+    // translateX(imgH) moves it back to the right edge of the wrap.
+    svgImg.style.transformOrigin = '0 0';
+    svgImg.style.transform = `rotate(90deg) translateX(${-imgH}px) translateX(${wrapW}px)`;
+    // That's: rotate then shift left by imgH, shift right by wrapW
+    // Simplify: translateX(wrapW - imgH)
+    svgImg.style.transform = `rotate(90deg) translateX(${wrapW - imgH}px)`;
+
+    // Now the image is rotated. The "top" of the strip (simple end = original LEFT of SVG)
+    // maps to the top of our wrap. As we scroll, we translate Y to reveal the complex end.
+    // Store computed values
+    svgImg._scale = scale;
+    svgImg._visH = visH;
+    svgImg._wrapH = wrapH;
+    svgImg._imgH = imgH;
+    svgImg._imgW = imgW;
+    svgImg._wrapW = wrapW;
+  }
+
+  function updateScroll() {
+    const artSection = document.getElementById('artwork-section');
+    const rect = artSection.getBoundingClientRect();
+    const sectionH = artSection.offsetHeight;
+    const scrolled = -rect.top;
+    const maxScroll = sectionH - window.innerHeight;
+    let progress = Math.max(0, Math.min(1, scrolled / maxScroll));
+
+    progressBar.style.width = (progress * 100) + '%';
+
+    if (!svgImg._visH) return;
+
+    const visH = svgImg._visH;
+    const wrapH = svgImg._wrapH;
+
+    // How much of the image overflows the viewport height?
+    const overflow = Math.max(0, visH - wrapH);
+    // Translate the image up as progress increases
+    const offsetY = progress * overflow;
+
+    // Re-apply transform with Y offset
+    const wrapW = svgImg._wrapW;
+    const imgH = svgImg._imgH;
+    svgImg.style.transform = `rotate(90deg) translateX(${wrapW - imgH}px) translateY(0px)`;
+    // Note: after rotation, Y translation maps differently.
+    // To move the visible strip UP (revealing the complex/bottom part),
+    // we need to shift the image upward in the rotated coordinate space.
+    // In rotated coords, the image "height" runs along the wrap height.
+    // translateY in pre-rotation = horizontal shift after rotation.
+    // Use a wrapper for the Y offset instead.
+    svgImg.style.top = (-offsetY) + 'px';
+
+    // Fade in panels
+    panels.forEach(panel => {
+      const panelRect = panel.getBoundingClientRect();
+      if (panelRect.top < window.innerHeight * 0.78) {
+        panel.classList.add('visible');
+      }
+    });
+  }
+
+  // ── SCROLL-ROTATING BACKGROUND ──
+  // Starts at 0° (same as intro) when intro leaves viewport.
+  // Rotates to 90° CW by the time user reaches the gap line ("The work is in that gap.").
+  // The image is centered and scaled to cover the viewport throughout.
+
+  const scrollBg = document.getElementById('scroll-bg');
+  const scrollBgImg = document.getElementById('scroll-bg-img');
+
+  function updateScrollBg() {
+    const introEl = document.getElementById('intro');
+    const closingEl = document.getElementById('closing');
+    const gapLine = closingEl ? closingEl.querySelector('p[style*="italic"]') : null;
+
+    const introBottom = introEl.getBoundingClientRect().bottom;
+    // Start rotating once intro has scrolled off screen (introBottom < 0)
+    // End rotation at the gap line
+    const gapRect = gapLine ? gapLine.getBoundingClientRect() : null;
+    const gapTop = gapRect ? gapRect.top : window.innerHeight * 10;
+
+    // scrollStart: when intro bottom passes viewport top
+    // scrollEnd: when gap line reaches viewport center
+    const scrollStart = 0; // introBottom === 0 means we just passed intro
+    // active range: from when intro exits to when gap line is in view
+    const active = introBottom < 20; // small buffer
+    scrollBg.classList.toggle('active', active);
+
+    if (!active) return;
+
+    // Progress: 0 when intro just exited, 1 when gap line hits midscreen
+    const totalRange = gapTop - 0; // gapTop relative to viewport, starts at ~vh and approaches midscreen
+    // We want: at gapTop = vh (gap is at bottom), progress ~= 0; at gapTop = vh/2, progress = 1
+    // Simpler: track via scrollY
+    const introExitY = introEl.offsetTop + introEl.offsetHeight; // scroll Y when intro exits
+    const gapY = gapLine
+      ? gapLine.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.5
+      : document.body.scrollHeight;
+
+    const scrollY = window.scrollY;
+    const raw = (scrollY - introExitY) / Math.max(1, gapY - introExitY);
+    const t = Math.max(0, Math.min(1, raw));
+
+    // Rotate from 0° to 90° (CW)
+    const deg = t * 90;
+
+    // Size the image to cover viewport regardless of rotation
+    // At 45° a landscape image needs to be bigger to cover — use diagonal
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const diag = Math.ceil(Math.sqrt(vw * vw + vh * vh));
+    // Scale image so its width = diag (covers at any rotation)
+    // SVG is 1151×482, aspect = 1151/482 ≈ 2.39
+    const aspect = 1151 / 482;
+    const imgW = diag;
+    const imgH = diag / aspect;
+
+    scrollBgImg.style.width = imgW + 'px';
+    scrollBgImg.style.height = imgH + 'px';
+    scrollBgImg.style.left = (vw / 2 - imgW / 2) + 'px';
+    scrollBgImg.style.top = (vh / 2 - imgH / 2) + 'px';
+    // Opacity: fade in quickly after intro, fade out as we near the gap
+    let opacity = 0.07;
+    if (t > 0.85) {
+      // fade out over last 15%
+      opacity = 0.07 * (1 - (t - 0.85) / 0.15);
+    } else if (t < 0.08) {
+      // fade in over first 8%
+      opacity = 0.07 * (t / 0.08);
+    }
+    scrollBgImg.style.opacity = opacity;
+    scrollBgImg.style.transform = `rotate(${deg}deg)`;
+  }
+
+  window.addEventListener('scroll', updateScrollBg, { passive: true });
+  window.addEventListener('resize', updateScrollBg);
+  updateScrollBg();
+
+
+  const titleBlock = document.querySelector('.title-block');
+  titleBlock.style.opacity = '0';
+  titleBlock.style.transform = 'translateY(24px)';
+  titleBlock.style.transition = 'opacity 1.2s ease, transform 1.2s ease';
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      titleBlock.style.opacity = '1';
+      titleBlock.style.transform = 'translateY(0)';
+    }, 200);
+  });
+
+  window.addEventListener('scroll', updateScroll, { passive: true });
+  window.addEventListener('resize', () => { layoutArt(); updateScroll(); });
+
+  layoutArt();
+  updateScroll();
+
+  // Also do an initial panel check
+  setTimeout(updateScroll, 100);
+</script>
+</body>
+</html>

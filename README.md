@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -552,7 +553,7 @@
 <section id="full-artwork">
   <p class="full-art-label">The work in full</p>
   <div id="full-svg-container">
-    <img src="hex_pattern_svg.svg" alt="How Long Have You Been You — full artwork, etched aluminum">
+    <img src="HowLongHaveYouBeenYou.jpeg" alt="How Long Have You Been You — full artwork, etched aluminum">
   </div>
   <p class="caption">Etched aluminum &nbsp;·&nbsp; The pattern moves from sparse regularity at left to dense complexity at right.</p>
 </section>

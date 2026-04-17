@@ -513,7 +513,7 @@
         <h2>But now<br><em>feels fixed.</em></h2>
         <div class="rule"></div>
         <p>Something strange happens when we look forward. The future self — the person you will be in ten, twenty, forty years — feels like a continuation of who you are right now. We make plans for them, make sacrifices for them, as though they are us.</p>
-        <p>We assume we will want what we want now. Believe what we believe now. Be, essentially, who we are now.</p>
+        <p>We assume our future self will want what we want now. Believe what we believe now. Be, essentially, who we are now.</p>
       </div>
     </div>
 

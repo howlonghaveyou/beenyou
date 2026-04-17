@@ -568,7 +568,7 @@
 <!-- FOOTER -->
 <footer>
   <span>How Long Have You Been You? &nbsp;·&nbsp; Etched Aluminum</span>
-  <span>© 2026</span>
+  <span>© 2026 — Craig Lewis</span>
 </footer>
 
 <script>
